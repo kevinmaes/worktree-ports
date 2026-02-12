@@ -37,8 +37,13 @@ fi
 
 # Priority 2: Detect main worktree via git
 if [[ "$env_copied" == false ]] && command -v git &>/dev/null && git rev-parse --git-dir &>/dev/null; then
-  main_worktree=$(git worktree list --porcelain 2>/dev/null | head -1 | sed 's/worktree //')
-  if [[ -n "$main_worktree" && "$main_worktree" != "$PWD" && -f "$main_worktree/.env" ]]; then
+  worktree_output=$(git worktree list --porcelain 2>&1) && {
+    main_worktree=$(echo "$worktree_output" | head -1 | sed 's/worktree //')
+  } || {
+    echo "$PREFIX Warning: 'git worktree list' failed"
+    main_worktree=""
+  }
+  if [[ -n "$main_worktree" && -d "$main_worktree" && "$main_worktree" != "$PWD" && -f "$main_worktree/.env" ]]; then
     cp "$main_worktree/.env" .env
     echo "$PREFIX Copied .env from main worktree ($main_worktree)"
     env_copied=true

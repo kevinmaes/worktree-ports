@@ -1,14 +1,26 @@
-# conductor-port-setup
+# worktree-ports
 
-Deterministic per-workspace port assignment for [Conductor](https://conductor.build) workspaces.
+Deterministic per-worktree port assignment for parallel development tools.
 
-When Conductor creates multiple workspace clones of the same repo, they all try to use the same dev server port. This script hashes each workspace's directory name to a unique port in the **4000-4999** range and writes it to `.env` as `APP_PORT`.
+When tools like [Conductor](https://conductor.build), [OpenAI Codex](https://openai.com/index/introducing-the-codex-app/), or manual `git worktree` workflows create multiple worktrees of the same repo, they all try to use the same dev server port. This script hashes each worktree's directory name to a unique port in the **4000-4999** range and writes it to `.env` as `APP_PORT`.
 
-## Setup guide
+## Quick start
 
-### 1. Add the setup script to `conductor.json`
+```bash
+curl -sSL https://raw.githubusercontent.com/kevinmaes/worktree-ports/main/setup-env.sh | bash
+```
 
-In your project's `conductor.json`, add a `setup` script that curls and runs the script before installing dependencies:
+The script will:
+
+1. Copy `.env` from your main worktree (preserving API keys, secrets, etc.)
+2. Hash the directory name to a deterministic port in 4000-4999
+3. Write `APP_PORT=<port>` to `.env`
+
+## Tool-specific setup
+
+### Conductor
+
+Add the script to your `conductor.json` setup hook:
 
 ```json
 {
@@ -18,33 +30,37 @@ In your project's `conductor.json`, add a `setup` script that curls and runs the
 }
 ```
 
-Conductor runs the `setup` script automatically when creating a new workspace. The script will:
+Conductor runs `setup` automatically when creating a new workspace. The script uses `CONDUCTOR_ROOT_PATH` (set by Conductor) to locate the root `.env`.
 
-1. Copy your root repo's `.env` into the workspace (preserving API keys, secrets, etc.)
-2. Append or update `APP_PORT=<port>` in the workspace's `.env`
+### OpenAI Codex
 
-### 2. Configure your dev server to use `APP_PORT`
-
-Your app needs to read `APP_PORT` from the environment and use it as the dev server port. See [framework examples](#framework-examples) below.
-
-### 3. Add `.env` to `.gitignore`
-
-Make sure `.env` is in your `.gitignore` so workspace-specific ports aren't committed:
-
-```
-.env
-```
-
-### 4. Verify it works
-
-After Conductor creates a workspace, check the `.env` file:
+Add the script to your environment setup. In your Codex cloud environment config or local setup, run it as part of your project initialization:
 
 ```bash
-cat .env | grep APP_PORT
-# APP_PORT=4732
+curl -sSL https://raw.githubusercontent.com/kevinmaes/worktree-ports/main/setup-env.sh | bash
 ```
 
-Each workspace gets a different port based on its directory name (e.g., `tokyo` -> `4237`, `berlin` -> `4891`).
+You can also mention it in your `AGENTS.md` so Codex knows to run it when creating worktrees:
+
+```markdown
+## Environment setup
+Run `curl -sSL https://raw.githubusercontent.com/kevinmaes/worktree-ports/main/setup-env.sh | bash`
+after creating a worktree to assign a unique dev server port.
+The port is written to `.env` as `APP_PORT`.
+```
+
+### Manual git worktrees
+
+Run the script after creating a worktree:
+
+```bash
+git worktree add ../my-feature
+cd ../my-feature
+curl -sSL https://raw.githubusercontent.com/kevinmaes/worktree-ports/main/setup-env.sh | bash
+pnpm install
+```
+
+The script auto-detects the main worktree via `git worktree list` and copies `.env` from there.
 
 ## Framework examples
 
@@ -72,13 +88,6 @@ Use the environment variable directly in your `dev` script (`package.json`):
     "dev": "next dev -p ${APP_PORT:-3000}"
   }
 }
-```
-
-Or in `next.config.js` if you need it at config time:
-
-```js
-// Load .env manually if not using Next.js built-in env loading
-require("dotenv").config();
 ```
 
 Next.js automatically loads `.env` files, so `APP_PORT` is available via `process.env.APP_PORT` in your config and server code.
@@ -115,25 +124,33 @@ export default defineConfig({
 
 ### The problem
 
-Conductor creates workspaces as git worktrees of your repo. Each workspace is a full clone in its own directory (e.g., `tokyo/`, `berlin/`, `denver/`). When you run `pnpm dev` in multiple workspaces, they all try to bind to the same port (typically 3000 or 5173), causing "port already in use" errors.
+Any tool that creates multiple worktrees of the same repo faces port conflicts. Whether it's Conductor creating workspaces named after cities, Codex spinning up worktrees per task, or a developer manually branching into worktrees, every copy tries to bind to the same default port (3000, 5173, etc.), causing "port already in use" errors.
 
 ### The solution
 
-The `setup-env.sh` script runs during workspace creation and:
+The `setup-env.sh` script runs inside a worktree and:
 
-1. **Copies `.env` from the root repo** -- If `CONDUCTOR_ROOT_PATH` is set (Conductor sets this automatically), the script copies `.env` from your original repo clone into the workspace. This preserves your API keys, database URLs, and other environment variables.
+1. **Copies `.env` from the main worktree** -- Uses `CONDUCTOR_ROOT_PATH` if available (Conductor), otherwise detects the main worktree via `git worktree list`. This preserves your API keys, database URLs, and other environment variables.
 
-2. **Hashes the workspace directory name to a port** -- Uses the [djb2 hash algorithm](http://www.cse.yorku.ca/~oz/hash.html) to deterministically map the workspace directory name (e.g., `tokyo`) to a port in the 4000-4999 range.
+2. **Hashes the directory name to a port** -- Uses the [djb2 hash algorithm](http://www.cse.yorku.ca/~oz/hash.html) to deterministically map the worktree directory name (e.g., `tokyo`) to a port in the 4000-4999 range.
 
 3. **Writes `APP_PORT` to `.env`** -- Appends `APP_PORT=<port>` to `.env`, or updates it if the key already exists. This is idempotent, so re-running the script is safe.
 
+### .env copy resolution order
+
+The script looks for a source `.env` in this order:
+
+1. `CONDUCTOR_ROOT_PATH/.env` -- if the Conductor env var is set
+2. Main git worktree's `.env` -- detected via `git worktree list`
+3. Skip copy -- if neither source exists, the script still assigns a port to any existing `.env`
+
 ### Port stability
 
-The same directory name always produces the same port. If you delete and recreate a workspace with the same name, it gets the same port. This means bookmarks, proxy configs, and muscle memory all keep working.
+The same directory name always produces the same port. If you delete and recreate a worktree with the same name, it gets the same port. Bookmarks, proxy configs, and muscle memory all keep working.
 
 ### Example port assignments
 
-| Workspace | Port |
+| Worktree  | Port |
 |-----------|------|
 | tokyo     | 4237 |
 | berlin    | 4891 |
@@ -147,16 +164,19 @@ The same directory name always produces the same port. If you delete and recreat
 
 | Variable | Set by | Description |
 |----------|--------|-------------|
-| `CONDUCTOR_ROOT_PATH` | Conductor | Path to the original repo clone. Used to copy `.env` into the workspace. |
+| `CONDUCTOR_ROOT_PATH` | Conductor | Path to the original repo clone. Used as the primary source for `.env` copy. |
 | `APP_PORT` | This script | The deterministic port number (4000-4999) written to `.env`. |
 
 ## Troubleshooting
 
 **"No .env file found, skipping port assignment"**
-The script only writes `APP_PORT` if a `.env` file exists. Either your root repo doesn't have a `.env`, or `CONDUCTOR_ROOT_PATH` isn't set. Create a `.env` in your root repo (even an empty one) before creating workspaces.
+The script only writes `APP_PORT` if a `.env` file exists. Make sure your main worktree (or root repo) has a `.env` file, even an empty one.
+
+**"No source .env found"**
+The script couldn't find an `.env` to copy. Check that your main worktree has a `.env`, and that you're running the script inside a git worktree (not a standalone clone).
 
 **Port conflicts between different repos**
-If you use Conductor with multiple repos that happen to have workspaces with the same directory name, they'll get the same port. This is rare since Conductor uses city names, but if it happens you can rename the workspace directory.
+Worktrees from different repos that happen to share a directory name will get the same port. This is rare with tools like Conductor (which uses city names), but if it happens you can rename the directory.
 
 **Dev server ignoring `APP_PORT`**
 Make sure your framework config reads `process.env.APP_PORT` and that you've loaded dotenv (or your framework does it automatically). See [framework examples](#framework-examples).
@@ -167,6 +187,7 @@ Requires Bash 4+. Some minimal Docker images ship with Bash 3 or only `sh`. Inst
 ## Requirements
 
 - Bash 4+
+- Git (for automatic main worktree detection)
 - Runs on macOS and Linux
 
 ## License

@@ -7,7 +7,7 @@ When tools like [Conductor](https://conductor.build), [OpenAI Codex](https://ope
 ## Quick start
 
 ```bash
-curl -sSL https://raw.githubusercontent.com/kevinmaes/worktree-ports/main/setup-env.sh | bash
+curl -fsSL https://raw.githubusercontent.com/kevinmaes/worktree-ports/main/setup-env.sh | bash
 ```
 
 The script will:
@@ -25,7 +25,7 @@ Add the script to your `conductor.json` setup hook:
 ```json
 {
   "scripts": {
-    "setup": "curl -sSL https://raw.githubusercontent.com/kevinmaes/worktree-ports/main/setup-env.sh | bash && pnpm install"
+    "setup": "curl -fsSL https://raw.githubusercontent.com/kevinmaes/worktree-ports/main/setup-env.sh | bash && pnpm install"
   }
 }
 ```
@@ -37,14 +37,14 @@ Conductor runs `setup` automatically when creating a new workspace. The script u
 Add the script to your environment setup. In your Codex cloud environment config or local setup, run it as part of your project initialization:
 
 ```bash
-curl -sSL https://raw.githubusercontent.com/kevinmaes/worktree-ports/main/setup-env.sh | bash
+curl -fsSL https://raw.githubusercontent.com/kevinmaes/worktree-ports/main/setup-env.sh | bash
 ```
 
 You can also mention it in your `AGENTS.md` so Codex knows to run it when creating worktrees:
 
 ```markdown
 ## Environment setup
-Run `curl -sSL https://raw.githubusercontent.com/kevinmaes/worktree-ports/main/setup-env.sh | bash`
+Run `curl -fsSL https://raw.githubusercontent.com/kevinmaes/worktree-ports/main/setup-env.sh | bash`
 after creating a worktree to assign a unique dev server port.
 The port is written to `.env` as `APP_PORT`.
 ```
@@ -56,7 +56,7 @@ Run the script after creating a worktree:
 ```bash
 git worktree add ../my-feature
 cd ../my-feature
-curl -sSL https://raw.githubusercontent.com/kevinmaes/worktree-ports/main/setup-env.sh | bash
+curl -fsSL https://raw.githubusercontent.com/kevinmaes/worktree-ports/main/setup-env.sh | bash
 pnpm install
 ```
 
@@ -182,11 +182,11 @@ Worktrees from different repos that happen to share a directory name will get th
 Make sure your framework config reads `process.env.APP_PORT` and that you've loaded dotenv (or your framework does it automatically). See [framework examples](#framework-examples).
 
 **Script fails on Linux**
-Requires Bash 4+. Some minimal Docker images ship with Bash 3 or only `sh`. Install Bash 4+ or use a base image that includes it.
+Requires Bash 3.2+. Some minimal Docker images only ship `sh`. Install Bash or use a base image that includes it.
 
 ## Requirements
 
-- Bash 4+
+- Bash 3.2+
 - Git (for automatic main worktree detection)
 - Runs on macOS and Linux
 

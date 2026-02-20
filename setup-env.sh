@@ -5,16 +5,17 @@ set -euo pipefail
 # Deterministic per-worktree port assignment for parallel development tools.
 # Works with Conductor, OpenAI Codex, manual git worktrees, and more.
 #
-# Usage: curl -sSL https://raw.githubusercontent.com/kevinmaes/worktree-ports/main/setup-env.sh | bash
+# Usage: curl -fsSL https://raw.githubusercontent.com/kevinmaes/worktree-ports/main/setup-env.sh | bash
 #
 # What it does:
 # 1. Copies .env from the main worktree into the current worktree
 # 2. Hashes the worktree directory name to a deterministic port in 4000-4999
-# 3. Writes APP_PORT=<port> into .env (creates or updates)
+# 3. Writes APP_PORT=<port> into .env (adds the key or updates it if present)
 #
 # .env copy resolution order:
 #   1. CONDUCTOR_ROOT_PATH (set automatically by Conductor)
 #   2. Main git worktree (detected via `git worktree list`)
+#   3. Falls back to any .env already present in the workspace
 #
 # Environment variables written to .env:
 #   APP_PORT - the deterministic port number (4000-4999)
@@ -54,7 +55,8 @@ if [[ "$env_copied" == false ]]; then
   echo "$PREFIX No source .env found (checked CONDUCTOR_ROOT_PATH and main worktree)"
 fi
 
-# Only assign a port if .env exists (either copied above or already present)
+# Only assign a port if .env exists (either copied above or already present).
+# Exit 0 intentionally: missing .env is not an error, it just means there's nothing to do.
 if [[ ! -f .env ]]; then
   echo "$PREFIX No .env file found, skipping port assignment"
   exit 0
@@ -67,7 +69,7 @@ djb2_hash() {
   local hash=5381
   for (( i = 0; i < ${#str}; i++ )); do
     char=$(printf '%d' "'${str:$i:1}")
-    hash=$(( (hash * 33 + char) % 2147483647 ))
+    hash=$(( (hash * 33 + char) % 2147483647 )) # 2^31-1: prevent bash integer overflow
   done
   echo $(( hash % 1000 + 4000 ))
 }
@@ -79,7 +81,7 @@ upsert_env_var() {
   local value="$2"
   local file=".env"
   if grep -q "^${key}=" "$file"; then
-    # macOS sed requires -i '' ; Linux sed requires -i without arg.
+    # BSD sed requires -i '' ; GNU sed requires -i without arg.
     if [[ "$(uname)" == "Darwin" ]]; then
       sed -i '' "s|^${key}=.*|${key}=${value}|" "$file" || { echo "$PREFIX Error: failed to update ${key} in $file"; exit 1; }
     else

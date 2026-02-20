@@ -27,7 +27,7 @@ env_copied=false
 # Priority 1: Conductor's CONDUCTOR_ROOT_PATH
 if [[ -n "${CONDUCTOR_ROOT_PATH:-}" ]]; then
   if [[ -f "$CONDUCTOR_ROOT_PATH/.env" ]]; then
-    cp "$CONDUCTOR_ROOT_PATH/.env" .env
+    cp "$CONDUCTOR_ROOT_PATH/.env" .env || { echo "$PREFIX Error: failed to copy .env from $CONDUCTOR_ROOT_PATH"; exit 1; }
     echo "$PREFIX Copied .env from root repo (via CONDUCTOR_ROOT_PATH)"
     env_copied=true
   else
@@ -44,7 +44,7 @@ if [[ "$env_copied" == false ]] && command -v git &>/dev/null && git rev-parse -
     main_worktree=""
   }
   if [[ -n "$main_worktree" && -d "$main_worktree" && "$main_worktree" != "$PWD" && -f "$main_worktree/.env" ]]; then
-    cp "$main_worktree/.env" .env
+    cp "$main_worktree/.env" .env || { echo "$PREFIX Error: failed to copy .env from $main_worktree"; exit 1; }
     echo "$PREFIX Copied .env from main worktree ($main_worktree)"
     env_copied=true
   fi

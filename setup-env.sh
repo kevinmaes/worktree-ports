@@ -78,15 +78,15 @@ upsert_env_var() {
   local key="$1"
   local value="$2"
   local file=".env"
-  if grep -q "^${key}=" "$file" 2>/dev/null; then
+  if grep -q "^${key}=" "$file"; then
     # macOS sed requires -i '' ; Linux sed requires -i without arg.
     if [[ "$(uname)" == "Darwin" ]]; then
-      sed -i '' "s|^${key}=.*|${key}=${value}|" "$file"
+      sed -i '' "s|^${key}=.*|${key}=${value}|" "$file" || { echo "$PREFIX Error: failed to update ${key} in $file"; exit 1; }
     else
-      sed -i "s|^${key}=.*|${key}=${value}|" "$file"
+      sed -i "s|^${key}=.*|${key}=${value}|" "$file" || { echo "$PREFIX Error: failed to update ${key} in $file"; exit 1; }
     fi
   else
-    echo "${key}=${value}" >> "$file"
+    echo "${key}=${value}" >> "$file" || { echo "$PREFIX Error: failed to append ${key} to $file"; exit 1; }
   fi
 }
 

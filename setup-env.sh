@@ -5,7 +5,7 @@ set -euo pipefail
 # Deterministic per-worktree port assignment for parallel development tools.
 # Works with Conductor, OpenAI Codex, manual git worktrees, and more.
 #
-# Usage: curl -sSL https://raw.githubusercontent.com/kevinmaes/worktree-ports/main/setup-env.sh | bash
+# Usage: curl -fsSL https://raw.githubusercontent.com/kevinmaes/worktree-ports/main/setup-env.sh | bash
 #
 # What it does:
 # 1. Copies .env from the main worktree into the current worktree

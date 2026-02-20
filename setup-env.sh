@@ -15,6 +15,7 @@ set -euo pipefail
 # .env copy resolution order:
 #   1. CONDUCTOR_ROOT_PATH (set automatically by Conductor)
 #   2. Main git worktree (detected via `git worktree list`)
+#   3. Falls back to any .env already present in the workspace
 #
 # Environment variables written to .env:
 #   APP_PORT - the deterministic port number (4000-4999)

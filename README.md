@@ -182,11 +182,11 @@ Worktrees from different repos that happen to share a directory name will get th
 Make sure your framework config reads `process.env.APP_PORT` and that you've loaded dotenv (or your framework does it automatically). See [framework examples](#framework-examples).
 
 **Script fails on Linux**
-Requires Bash 4+. Some minimal Docker images ship with Bash 3 or only `sh`. Install Bash 4+ or use a base image that includes it.
+Requires Bash 3.2+. Some minimal Docker images only ship `sh`. Install Bash or use a base image that includes it.
 
 ## Requirements
 
-- Bash 4+
+- Bash 3.2+
 - Git (for automatic main worktree detection)
 - Runs on macOS and Linux
 

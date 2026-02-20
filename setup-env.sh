@@ -55,7 +55,8 @@ if [[ "$env_copied" == false ]]; then
   echo "$PREFIX No source .env found (checked CONDUCTOR_ROOT_PATH and main worktree)"
 fi
 
-# Only assign a port if .env exists (either copied above or already present)
+# Only assign a port if .env exists (either copied above or already present).
+# Exit 0 intentionally: missing .env is not an error, it just means there's nothing to do.
 if [[ ! -f .env ]]; then
   echo "$PREFIX No .env file found, skipping port assignment"
   exit 0

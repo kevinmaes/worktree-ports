@@ -10,7 +10,7 @@ set -euo pipefail
 # What it does:
 # 1. Copies .env from the main worktree into the current worktree
 # 2. Hashes the worktree directory name to a deterministic port in 4000-4999
-# 3. Writes APP_PORT=<port> into .env (creates or updates)
+# 3. Writes APP_PORT=<port> into .env (adds the key or updates it if present)
 #
 # .env copy resolution order:
 #   1. CONDUCTOR_ROOT_PATH (set automatically by Conductor)

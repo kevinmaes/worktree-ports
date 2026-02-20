@@ -68,7 +68,7 @@ djb2_hash() {
   local hash=5381
   for (( i = 0; i < ${#str}; i++ )); do
     char=$(printf '%d' "'${str:$i:1}")
-    hash=$(( (hash * 33 + char) % 2147483647 ))
+    hash=$(( (hash * 33 + char) % 2147483647 )) # 2^31-1: prevent bash integer overflow
   done
   echo $(( hash % 1000 + 4000 ))
 }
